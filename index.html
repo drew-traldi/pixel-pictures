@@ -1,0 +1,73 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PIXEL BOY — Pixel Art Editor</title>
+<meta name="description" content="Draw pixel art with retro Game Boy, PICO-8 and NES palettes, then export a crisp PNG.">
+<meta property="og:title" content="Pixel Boy">
+<meta property="og:description" content="Draw pixel art with retro Game Boy, PICO-8 and NES palettes, then export a crisp PNG.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://drew-traldi.github.io/pixel-pictures/">
+<meta name="twitter:card" content="summary">
+<meta name="author" content="Drew Traldi">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ctext%20y%3D%27.9em%27%20font-size%3D%2790%27%3E%F0%9F%91%BE%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:grid;place-items:center;padding:24px 12px;font-family:'Silkscreen',monospace;background:#8b8680 radial-gradient(circle at 50% 40%,#b5b0a8,#6e6a64)}
+.gb{background:#c4c0b8;border-radius:14px 14px 60px 14px;padding:24px 22px 30px;box-shadow:inset -6px -6px 0 #a6a29a,inset 4px 4px 0 #dcd8d0,0 20px 40px rgba(0,0,0,.4);width:min(560px,100%)}
+.scr{background:#5c5a66;border-radius:10px 10px 40px 10px;padding:18px 26px 14px}
+.scr .lbl{color:#a9a7b3;font-size:10px;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.scr .lbl i{width:8px;height:8px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 6px #f00}
+canvas{width:100%;aspect-ratio:1;image-rendering:pixelated;background:#9bbc0f;display:block;touch-action:none;cursor:crosshair}
+.brand{color:#2a2a8a;font-weight:700;font-style:italic;font-size:22px;margin:12px 4px 14px}
+.brand span{font-size:12px;color:#8b2e7a}
+.pal{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pal i{width:34px;height:34px;border-radius:6px;cursor:pointer;border:3px solid #6e6a64}
+.pal i.on{border-color:#2a2a8a;transform:scale(1.12)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.dpad{display:grid;grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,30px)}
+.dpad button{background:#2b2b2b;border:0;color:#777;font-size:12px;cursor:pointer}
+.dpad button:nth-child(1){grid-column:2;border-radius:4px 4px 0 0}.dpad button:nth-child(2){grid-column:1;grid-row:2;border-radius:4px 0 0 4px}.dpad button:nth-child(3){grid-column:3;grid-row:2;border-radius:0 4px 4px 0}.dpad button:nth-child(4){grid-column:2;grid-row:3;border-radius:0 0 4px 4px}
+.dpad::after{content:"";grid-column:2;grid-row:2;background:#2b2b2b}
+.ab{display:flex;gap:14px;transform:rotate(-20deg)}
+.ab button{width:52px;height:52px;border-radius:50%;background:#9a2257;border:0;color:#fff;font:700 11px 'Silkscreen';cursor:pointer;box-shadow:0 4px 0 #5e1435}
+.ab button:active{transform:translateY(3px);box-shadow:0 1px 0 #5e1435}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
+.tools button{font:700 11px 'Silkscreen';background:#6e6a64;color:#e8e6e0;border:0;border-radius:12px;padding:7px 10px;cursor:pointer;transform:rotate(-20deg)}
+.tools button.on{background:#2a2a8a}
+select{font:11px 'Silkscreen';background:#6e6a64;color:#fff;border:0;border-radius:10px;padding:6px}
+.help{font-size:9px;color:#5e5a54;margin-top:14px;line-height:1.6}
+</style></head><body>
+<div class="gb">
+<div class="scr"><div class="lbl"><i></i>BATTERY · <span id="info">16×16</span></div><canvas id="c"></canvas></div>
+<div class="brand">PIXEL BOY <span>COLOR</span></div>
+<div class="pal" id="pal"></div>
+<div class="row"><div class="dpad" title="Shift the drawing"><button data-d="u">▲</button><button data-d="l">◀</button><button data-d="r">▶</button><button data-d="d">▼</button></div>
+<div class="ab"><button id="undo">B<br>undo</button><button id="save">A<br>save</button></div></div>
+<div class="tools" id="tools"><button data-t="pen" class="on">pen</button><button data-t="erase">erase</button><button data-t="fill">fill</button><button data-t="pick">pick</button><button data-t="mirror">mirror</button><select id="size"><option value="8">8×8</option><option value="16" selected>16×16</option><option value="24">24×24</option><option value="32">32×32</option></select><select id="palset"><option value="gb">GameBoy</option><option value="pico">PICO-8</option><option value="nes">NES-ish</option></select><button id="grid">grid</button><button id="clr">clear</button></div>
+<div class="help">DRAW WITH MOUSE/TOUCH · RIGHT-CLICK = ERASE · D-PAD SHIFTS ART · A = EXPORT PNG (×16) · AUTOSAVES</div>
+</div>
+<script>
+const $=id=>document.getElementById(id);const cv=$('c'),x=cv.getContext('2d');
+const PALS={gb:['#0f380f','#306230','#8bac0f','#9bbc0f','#e0f8d0','#ff004d','#29adff','#ffec27'],pico:['#000000','#1d2b53','#7e2553','#008751','#ab5236','#5f574f','#c2c3c7','#fff1e8','#ff004d','#ffa300','#ffec27','#00e436','#29adff','#83769c','#ff77a8','#ffccaa'],nes:['#000000','#fcfcfc','#bcbcbc','#7c7c7c','#a80020','#f83800','#fca044','#f8b800','#00a800','#58d854','#0058f8','#3cbcfc','#6844fc','#d800cc','#f878f8','#503000']};
+let N=16,G=[],col='#0f380f',tool='pen',grid=true,hist=[],pal='gb',down=false,btn=0;
+try{const s=JSON.parse(localStorage.pixelboy);N=s.N;G=s.G;pal=s.pal||'gb'}catch(e){}
+if(G.length!==N*N)G=Array(N*N).fill(null);$('size').value=N;$('palset').value=pal;
+function palette(){$('pal').innerHTML=PALS[pal].map(c=>`<i style="background:${c}" data-c="${c}" class="${c===col?'on':''}"></i>`).join('');$('pal').querySelectorAll('i').forEach(i=>i.onclick=()=>{col=i.dataset.c;if(tool==='erase'||tool==='pick')setTool('pen');palette()})}
+function setTool(t){tool=t;$('tools').querySelectorAll('[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
+function draw(){const S=512;cv.width=cv.height=S;const p=S/N;x.clearRect(0,0,S,S);for(let i=0;i<N*N;i++){const X=i%N,Y=Math.floor(i/N);x.fillStyle=G[i]||((X+Y)%2?'#9bbc0f':'#a7c82a');x.fillRect(X*p,Y*p,p,p)}
+ if(grid){x.strokeStyle='rgba(15,56,15,.18)';x.lineWidth=1;for(let i=1;i<N;i++){x.beginPath();x.moveTo(i*p,0);x.lineTo(i*p,S);x.moveTo(0,i*p);x.lineTo(S,i*p);x.stroke()}}
+ $('info').textContent=`${N}×${N} · ${G.filter(Boolean).length} px`;localStorage.pixelboy=JSON.stringify({N,G,pal})}
+function cell(e){const r=cv.getBoundingClientRect();const X=Math.floor((e.clientX-r.left)/r.width*N),Y=Math.floor((e.clientY-r.top)/r.height*N);return X>=0&&Y>=0&&X<N&&Y<N?Y*N+X:-1}
+function fill(i,target){const st=[i],seen=new Set;while(st.length){const k=st.pop();if(seen.has(k)||G[k]!==target)continue;seen.add(k);G[k]=col;const X=k%N,Y=Math.floor(k/N);if(X>0)st.push(k-1);if(X<N-1)st.push(k+1);if(Y>0)st.push(k-N);if(Y<N-1)st.push(k+N)}}
+function act(i){if(i<0)return;const erase=tool==='erase'||btn===2;if(tool==='pick'){if(G[i]){col=G[i];palette();setTool('pen')}return}if(tool==='fill'&&!erase){if(G[i]!==col)fill(i,G[i]);draw();return}
+ const v=erase?null:col;G[i]=v;if(tool==='mirror'){const X=i%N,Y=Math.floor(i/N);G[Y*N+(N-1-X)]=v}draw()}
+cv.onpointerdown=e=>{e.preventDefault();btn=e.button;hist.push([...G]);if(hist.length>50)hist.shift();down=true;cv.setPointerCapture(e.pointerId);act(cell(e))};
+cv.onpointermove=e=>{if(down&&tool!=='fill'&&tool!=='pick')act(cell(e))};cv.onpointerup=()=>down=false;cv.oncontextmenu=e=>e.preventDefault();
+$('tools').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>setTool(b.dataset.t));
+$('undo').onclick=()=>{if(hist.length){G=hist.pop();draw()}};$('grid').onclick=()=>{grid=!grid;draw()};$('clr').onclick=()=>{hist.push([...G]);G=Array(N*N).fill(null);draw()};
+$('size').onchange=()=>{const n=+$('size').value,ng=Array(n*n).fill(null);for(let y=0;y<Math.min(n,N);y++)for(let x2=0;x2<Math.min(n,N);x2++)ng[y*n+x2]=G[y*N+x2];N=n;G=ng;hist=[];draw()};
+$('palset').onchange=()=>{pal=$('palset').value;col=PALS[pal][0];palette();draw()};
+document.querySelectorAll('.dpad button').forEach(b=>b.onclick=()=>{hist.push([...G]);const d=b.dataset.d,ng=Array(N*N).fill(null);for(let i=0;i<N*N;i++){let X=i%N,Y=Math.floor(i/N);if(d==='u')Y--;if(d==='d')Y++;if(d==='l')X--;if(d==='r')X++;X=(X+N)%N;Y=(Y+N)%N;ng[Y*N+X]=G[i]}G=ng;draw()});
+$('save').onclick=()=>{const k=16,t=document.createElement('canvas');t.width=t.height=N*k;const tx=t.getContext('2d');G.forEach((c,i)=>{if(c){tx.fillStyle=c;tx.fillRect(i%N*k,Math.floor(i/N)*k,k,k)}});const a=document.createElement('a');a.download='pixel-art.png';a.href=t.toDataURL();a.click()};
+addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='z'){e.preventDefault();$('undo').click()}const m={p:'pen',e:'erase',f:'fill',i:'pick',m:'mirror'};if(m[e.key])setTool(m[e.key]);if(e.key==='g')$('grid').click()});
+palette();draw();
+</script></body></html>
