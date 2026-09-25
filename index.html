@@ -35,6 +35,9 @@ canvas{width:100%;aspect-ratio:1;image-rendering:pixelated;background:#9bbc0f;di
 .tools button.on{background:#2a2a8a}
 select{font:11px 'Silkscreen';background:#6e6a64;color:#fff;border:0;border-radius:10px;padding:6px}
 .help{font-size:9px;color:#5e5a54;margin-top:14px;line-height:1.6}
+
+/* mobile: 16px fields stop iOS focus-zoom; roomier touch targets */
+@media (max-width:640px){input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]),select,textarea{font-size:16px!important}}
 </style></head><body>
 <div class="gb">
 <div class="scr"><div class="lbl"><i></i>BATTERY · <span id="info">16×16</span></div><canvas id="c"></canvas></div>
